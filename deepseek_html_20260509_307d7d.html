@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐚 BaySide | Dashboard Ventas vs Costos</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
+    <style>
+        :root {
+            --coral: #FF6B6B;
+            --turquesa: #4ECDC4;
+            --arena: #F7DC6F;
+            --mar-profundo: #1A3A42;
+            --palma: #2ECC71;
+            --concha: #FFEAA7;
+            --atardecer: #FF8C42;
+            --espuma: #F5F6FA;
+            --texto-oscuro: #2C3E50;
+            --bayside-blue: #0077B6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%);
+            background-attachment: fixed;
+            color: var(--texto-oscuro);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(255, 107, 107, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(78, 205, 196, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(247, 220, 111, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--bayside-blue), #00B4D8);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1;
+            border-bottom: 4px solid var(--concha);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0%,
+            100% {
+                background: linear-gradient(135deg, var(--bayside-blue), #00B4D8);
+            }
+            50% {
+                background: linear-gradient(135deg, #00B4D8, var(--bayside-blue));
+            }
+        }
+
+        header::after {
+            content: '🦞 🐠 🥩';
+            position: absolute;
+            bottom: -15px;
+            right: 30px;
+            font-size: 2rem;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-style: italic;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid transparent;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+            border-color: var(--turquesa);
+        }
+
+        .kpi-card:nth-child(1) {
+            border-top: 4px solid var(--coral);
+        }
+        .kpi-card:nth-child(2) {
+            border-top: 4px solid var(--turquesa);
+        }
+        .kpi-card:nth-child(3) {
+            border-top: 4px solid var(--palma);
+        }
+        .kpi-card:nth-child(4) {
+            border-top: 4px solid var(--arena);
+        }
+        .kpi-card:nth-child(5) {
+            border-top: 4px solid var(--atardecer);
+        }
+
+        .kpi-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .kpi-label {
+            font-size: 0.9rem;
+            color: #7F8C8D;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--mar-profundo);
+            margin: 0.5rem 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .kpi-change {
+            font-size: 0.85rem;
+            color: var(--palma);
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+
+        .charts-section {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .chart-card h2 {
+            color: var(--mar-profundo);
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        .data-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .section-header h2 {
+            color: var(--mar-profundo);
+            font-size: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: var(--turquesa);
+            color: white;
+            box-shadow: 0 4px 15px rgba(78, 205, 196, 0.4);
+        }
+
+        .btn-primary:hover {
+            background: #45B7AA;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(78, 205, 196, 0.6);
+        }
+
+        .btn-ventas {
+            background: var(--coral);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-ventas:hover {
+            background: #FF5252;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.6);
+        }
+
+        .btn-costos {
+            background: var(--bayside-blue);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 119, 182, 0.4);
+        }
+
+        .btn-costos:hover {
+            background: #006494;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 119, 182, 0.6);
+        }
+
+        .btn-reset {
+            background: var(--atardecer);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 140, 66, 0.4);
+        }
+
+        .btn-reset:hover {
+            background: #F57C00;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 140, 66, 0.6);
+        }
+
+        .btn-export {
+            background: var(--palma);
+            color: white;
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+        }
+
+        .btn-export:hover {
+            background: #27AE60;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(46, 204, 113, 0.6);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #ffffff, #f0f8ff);
+            margin: 2% auto;
+            padding: 2rem;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 1000px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--turquesa);
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--turquesa);
+        }
+
+        .modal-header h2 {
+            color: var(--mar-profundo);
+            font-size: 1.8rem;
+        }
+
+        .close {
+            color: var(--coral);
+            font-size: 2.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: #ff4444;
+            transform: rotate(90deg);
+        }
+
+        .modal-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .modal-table th {
+            background: var(--bayside-blue);
+            color: white;
+            padding: 0.8rem;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .modal-table td {
+            padding: 0.8rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .modal-table input,
+        .modal-table textarea,
+        .modal-table select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .modal-table input:focus,
+        .modal-table textarea:focus,
+        .modal-table select:focus {
+            outline: none;
+            border-color: var(--turquesa);
+            box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.2);
+        }
+
+        .modal-table textarea {
+            resize: vertical;
+            min-height: 40px;
+        }
+
+        .add-row-btn {
+            background: var(--turquesa);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .add-row-btn:hover {
+            background: #45B7AA;
+            transform: translateY(-2px);
+        }
+
+        .delete-row-btn {
+            background: var(--coral);
+            color: white;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .delete-row-btn:hover {
+            background: #ff4444;
+        }
+
+        .total-section {
+            background: linear-gradient(135deg, var(--bayside-blue), #00B4D8);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            text-align: right;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th {
+            background: var(--mar-profundo);
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85rem;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #E0E0E0;
+            color: var(--texto-oscuro);
+            font-weight: 500;
+        }
+
+        tr:hover {
+            background: rgba(78, 205, 196, 0.1);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🌊 BaySide 🏖️</h1>
+        <p>Dashboard de Ventas y Costos · Mariscos & Carnes Premium</p>
+    </header>
+
+    <div class="container">
+        <!-- KPIs -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-icon">💰</div>
+                <div class="kpi-label">Ventas Totales</div>
+                <div class="kpi-value" id="total-ventas">Q57,400.00</div>
+                <div class="kpi-change">📈 Actualizado en tiempo real</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon">📦</div>
+                <div class="kpi-label">Costo Total</div>
+                <div class="kpi-value" id="total-costos">Q39,000.00</div>
+                <div class="kpi-change">📉 Basado en materia prima</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon">💎</div>
+                <div class="kpi-label">Margen Bruto</div>
+                <div class="kpi-value" id="margen-bruto">Q18,400.00</div>
+                <div class="kpi-change">✨ Rentabilidad neta</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon">📊</div>
+                <div class="kpi-label">% Margen</div>
+                <div class="kpi-value" id="porcentaje-margen">32.1%</div>
+                <div class="kpi-change">🎯 Meta superada</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon">🔮</div>
+                <div class="kpi-label">Pronóstico Mayo</div>
+                <div class="kpi-value" id="pronostico-mayo">Q17,250.00</div>
+                <div class="kpi-change">🌊 Regresión lineal</div>
+            </div>
+        </div>
+
+        <!-- Gráfico Principal -->
+        <div class="charts-section">
+            <div class="chart-card">
+                <h2>🐟 Evolución Mensual: Ventas vs Costos & Tendencia</h2>
+                <div class="chart-container">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de Datos Mensuales -->
+        <div class="data-section">
+            <div class="section-header">
+                <h2>📋 Gestión de Datos Mensuales</h2>
+                <div>
+                    <button class="btn btn-primary" id="add-row">+ Agregar Mes</button>
+                    <button class="btn btn-export" id="export-data">📥 Exportar CSV</button>
+                    <button class="btn btn-reset" id="reset-data">🔄 Restablecer</button>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mes</th>
+                        <th>Ventas Totales</th>
+                        <th>Costos Totales</th>
+                        <th>Margen</th>
+                        <th>% Margen</th>
+                        <th>Tendencia</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Datos dinámicos -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal de Ventas -->
+    <div id="ventas-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🦐 Ventas del Mes: <span id="ventas-month-title"></span></h2>
+                <span class="close" onclick="closeVentasModal()">&times;</span>
+            </div>
+            <button class="add-row-btn" onclick="addPlatilloRow()">+ Agregar Platillo</button>
+            <table class="modal-table">
+                <thead>
+                    <tr>
+                        <th>Platillo</th>
+                        <th>Cantidad Vendida</th>
+                        <th>Precio Unitario (Q)</th>
+                        <th>Notas (opcional)</th>
+                        <th>Total (Q)</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="ventas-modal-body">
+                    <!-- Filas dinámicas de platillos -->
+                </tbody>
+            </table>
+            <div class="total-section">
+                Total Ventas del Mes: <span id="ventas-total-modal">Q0.00</span>
+            </div>
+            <button class="btn btn-ventas" onclick="saveVentasData()" style="margin-top: 1rem; width: 100%;">
+                💾 Guardar Datos de Ventas
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal de Costos -->
+    <div id="costos-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📦 Costos del Mes: <span id="costos-month-title"></span></h2>
+                <span class="close" onclick="closeCostosModal()">&times;</span>
+            </div>
+            <button class="add-row-btn" onclick="addCostoRow()">+ Agregar Materia Prima</button>
+            <table class="modal-table">
+                <thead>
+                    <tr>
+                        <th>Producto/Materia Prima</th>
+                        <th>Cantidad Comprada</th>
+                        <th>Precio Unitario (Q)</th>
+                        <th>Total (Q)</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="costos-modal-body">
+                    <!-- Filas dinámicas de costos -->
+                </tbody>
+            </table>
+            <div class="total-section">
+                Total Costos del Mes: <span id="costos-total-modal">Q0.00</span>
+            </div>
+            <button class="btn btn-costos" onclick="saveCostosData()" style="margin-top: 1rem; width: 100%;">
+                💾 Guardar Datos de Costos
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Datos iniciales con estructura expandida
+        const initialData = [
+            { month: '2023-01', ventas: 3500, costos: 2400, detallesVentas: [], detallesCostos: [] },
+            { month: '2023-02', ventas: 3800, costos: 2600, detallesVentas: [], detallesCostos: [] },
+            { month: '2023-03', ventas: 4200, costos: 2800, detallesVentas: [], detallesCostos: [] },
+            { month: '2023-04', ventas: 4600, costos: 3100, detallesVentas: [], detallesCostos: [] },
+            { month: '2023-05', ventas: 5100, costos: 3400, detallesVentas: [], detallesCostos: [] },
+            { month: '2023-06', ventas: 5400, costos: 3600, detallesVentas: [], detallesCostos: [] },
+            { month: '2023-07', ventas: 5800, costos: 3900, detallesVentas: [], detallesCostos: [] },
+            { month: '2023-08', ventas: 6200, costos: 4200, detallesVentas: [], detallesCostos: [] },
+            { month: '2023-09', ventas: 5500, costos: 3700, detallesVentas: [], detallesCostos: [] },
+            { month: '2023-10', ventas: 5800, costos: 3900, detallesVentas: [], detallesCostos: [] },
+            { month: '2023-11', ventas: 5300, costos: 3600, detallesVentas: [], detallesCostos: [] },
+            { month: '2023-12', ventas: 6000, costos: 4000, detallesVentas: [], detallesCostos: [] },
+        ];
+
+        // Inicializar datos de ejemplo para el primer mes
+        initialData[0].detallesVentas = [
+            { platillo: 'Ceviche de Camarón', cantidad: 45, precio: 195, notas: '', total: 8775 },
+            { platillo: 'Filete de Pescado', cantidad: 30, precio: 273, notas: 'Sin papas (descuento Q16)', total: 7710 },
+            { platillo: 'Parrillada Mixta', cantidad: 20, precio: 429, notas: '', total: 8580 },
+            { platillo: 'Langosta al Ajillo', cantidad: 8, precio: 585, notas: 'Tamaño grande', total: 4680 },
+        ];
+
+        initialData[0].detallesCostos = [
+            { producto: 'Camarón fresco (kg)', cantidad: 25, precio: 140, total: 3500 },
+            { producto: 'Filete de pescado (kg)', cantidad: 30, precio: 172, total: 5160 },
+            { producto: 'Carne para parrillada (kg)', cantidad: 20, precio: 218, total: 4360 },
+            { producto: 'Langosta (unidad)', cantidad: 8, precio: 273, total: 2184 },
+            { producto: 'Verduras y especias', cantidad: 40, precio: 39, total: 1560 },
+            { producto: 'Aceites y salsas', cantidad: 15, precio: 62, total: 930 },
+        ];
+
+        // Recalcular totales iniciales
+        initialData[0].ventas = initialData[0].detallesVentas.reduce((sum, item) => sum + item.total, 0);
+        initialData[0].costos = initialData[0].detallesCostos.reduce((sum, item) => sum + item.total, 0);
+
+        // Estado de la aplicación
+        let data = JSON.parse(localStorage.getItem('baysideData')) || [...initialData];
+        let chart;
+        let currentMonthIndex = -1;
+
+        // Formatear moneda en quetzales
+        function formatQuetzal(amount) {
+            return 'Q' + amount.toLocaleString('es-GT', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        // Inicializar
+        function init() {
+            updateKPIs();
+            createChart();
+            renderTable();
+        }
+
+        // Calcular regresión lineal
+        function linearRegression(xValues, yValues) {
+            const n = xValues.length;
+            let sumX = 0,
+                sumY = 0,
+                sumXY = 0,
+                sumXX = 0;
+
+            for (let i = 0; i < n; i++) {
+                sumX += xValues[i];
+                sumY += yValues[i];
+                sumXY += xValues[i] * yValues[i];
+                sumXX += xValues[i] * xValues[i];
+            }
+
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+
+            return { slope, intercept };
+        }
+
+        // Predecir próximo mes
+        function predictNextMonth() {
+            const months = data.map((_, i) => i);
+            const ventas = data.map(d => d.ventas);
+            const { slope, intercept } = linearRegression(months, ventas);
+            const nextMonth = months.length;
+            return Math.round(slope * nextMonth + intercept);
+        }
+
+        // Actualizar KPIs
+        function updateKPIs() {
+            const totalVentas = data.reduce((sum, d) => sum + d.ventas, 0);
+            const totalCostos = data.reduce((sum, d) => sum + d.costos, 0);
+            const margenBruto = totalVentas - totalCostos;
+            const porcentajeMargen = totalVentas > 0 ? (margenBruto / totalVentas * 100) : 0;
+            const pronostico = predictNextMonth();
+
+            document.getElementById('total-ventas').textContent = formatQuetzal(totalVentas);
+            document.getElementById('total-costos').textContent = formatQuetzal(totalCostos);
+            document.getElementById('margen-bruto').textContent = formatQuetzal(margenBruto);
+            document.getElementById('porcentaje-margen').textContent = `${porcentajeMargen.toFixed(1)}%`;
+            document.getElementById('pronostico-mayo').textContent = formatQuetzal(pronostico);
+        }
+
+        // Crear gráfico principal
+        function createChart() {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            const labels = data.map(d => d.month);
+            const ventas = data.map(d => d.ventas);
+            const costos = data.map(d => d.costos);
+
+            // Calcular tendencia
+            const months = data.map((_, i) => i);
+            const { slope, intercept } = linearRegression(months, ventas);
+            const tendencia = months.map(i => +(slope * i + intercept).toFixed(2));
+
+            // Agregar pronóstico
+            const extendedLabels = [...labels, '2024-05 Pronóstico'];
+            const extendedVentas = [...ventas, null];
+            const extendedCostos = [...costos, null];
+            const extendedTendencia = [...tendencia, +(slope * months.length + intercept).toFixed(2)];
+            const pronostico = [null, null, null, null, null, null, null, null, null, null, null, null, +(slope *
+                months.length + intercept).toFixed(2)];
+
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: extendedLabels,
+                    datasets: [{
+                        label: '🦐 Ventas Reales',
+                        data: extendedVentas,
+                        backgroundColor: 'rgba(255, 107, 107, 0.7)',
+                        borderColor: '#FF6B6B',
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }, {
+                        label: '📦 Costos Reales',
+                        data: extendedCostos,
+                        backgroundColor: 'rgba(78, 205, 196, 0.5)',
+                        borderColor: '#4ECDC4',
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }, {
+                        label: '📈 Tendencia (Regresión)',
+                        data: extendedTendencia,
+                        type: 'line',
+                        borderColor: '#FF8C42',
+                        backgroundColor: 'rgba(255, 140, 66, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#FF8C42',
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 2,
+                        tension: 0.4,
+                        fill: false,
+                    }, {
+                        label: '🔮 Pronóstico Mayo',
+                        data: pronostico,
+                        type: 'scatter',
+                        backgroundColor: '#F7DC6F',
+                        borderColor: '#F39C12',
+                        borderWidth: 3,
+                        pointRadius: 12,
+                        pointStyle: 'star',
+                        showLine: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index',
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyleWidth: 10,
+                                font: {
+                                    size: 13,
+                                    weight: '600'
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(26, 58, 66, 0.95)',
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 13
+                            },
+                            padding: 15,
+                            cornerRadius: 10,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += formatQuetzal(context.parsed.y);
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 45000,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatQuetzal(value);
+                                },
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10
+                                },
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Renderizar tabla principal
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            const months = data.map((_, i) => i);
+            const ventas = data.map(d => d.ventas);
+            const { slope, intercept } = linearRegression(months, ventas);
+            const tendenciaValues = months.map(i => +(slope * i + intercept).toFixed(2));
+
+            tbody.innerHTML = '';
+
+            data.forEach((row, index) => {
+                const margen = row.ventas - row.costos;
+                const porcentajeMargen = row.ventas > 0 ? (margen / row.ventas * 100) : 0;
+                const tendencia = tendenciaValues[index];
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.month}</td>
+                    <td>${formatQuetzal(row.ventas)}</td>
+                    <td>${formatQuetzal(row.costos)}</td>
+                    <td>${formatQuetzal(margen)}</td>
+                    <td>${porcentajeMargen.toFixed(1)}%</td>
+                    <td>${formatQuetzal(tendencia)}</td>
+                    <td class="action-buttons">
+                        <button class="btn btn-ventas" onclick="openVentasModal(${index})" style="padding: 0.5rem;">
+                            🦐 Ventas
+                        </button>
+                        <button class="btn btn-costos" onclick="openCostosModal(${index})" style="padding: 0.5rem;">
+                            📦 Costos
+                        </button>
+                        <button class="btn btn-reset" onclick="deleteRow(${index})" style="padding: 0.5rem;">
+                            🗑️
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Abrir modal de ventas
+        function openVentasModal(index) {
+            currentMonthIndex = index;
+            document.getElementById('ventas-month-title').textContent = data[index].month;
+            document.getElementById('ventas-modal').style.display = 'block';
+
+            if (!data[index].detallesVentas) {
+                data[index].detallesVentas = [];
+            }
+
+            renderVentasModal();
+        }
+
+        // Renderizar modal de ventas
+        function renderVentasModal() {
+            const tbody = document.getElementById('ventas-modal-body');
+            const detalles = data[currentMonthIndex].detallesVentas;
+            tbody.innerHTML = '';
+
+            detalles.forEach((item, itemIndex) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="text" value="${item.platillo}" data-item-index="${itemIndex}" data-field="platillo" class="ventas-input"></td>
+                    <td><input type="number" value="${item.cantidad}" data-item-index="${itemIndex}" data-field="cantidad" class="ventas-input" onchange="updateVentasTotal(${itemIndex})"></td>
+                    <td><input type="number" step="0.01" value="${item.precio}" data-item-index="${itemIndex}" data-field="precio" class="ventas-input" onchange="updateVentasTotal(${itemIndex})"></td>
+                    <td><textarea data-item-index="${itemIndex}" data-field="notas" class="ventas-input">${item.notas || ''}</textarea></td>
+                    <td>${formatQuetzal(item.total)}</td>
+                    <td><button class="delete-row-btn" onclick="deleteVentasItem(${itemIndex})">🗑️</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updateVentasGrandTotal();
+        }
+
+        // Actualizar total de un item de ventas
+        function updateVentasTotal(itemIndex) {
+            const detalles = data[currentMonthIndex].detallesVentas;
+            const cantidad = parseFloat(document.querySelector(
+                `input[data-item-index="${itemIndex}"][data-field="cantidad"]`).value) || 0;
+            const precio = parseFloat(document.querySelector(
+                `input[data-item-index="${itemIndex}"][data-field="precio"]`).value) || 0;
+            detalles[itemIndex].cantidad = cantidad;
+            detalles[itemIndex].precio = precio;
+            detalles[itemIndex].total = cantidad * precio;
+            renderVentasModal();
+        }
+
+        // Actualizar gran total de ventas del modal
+        function updateVentasGrandTotal() {
+            const detalles = data[currentMonthIndex].detallesVentas;
+            const total = detalles.reduce((sum, item) => sum + (item.total || 0), 0);
+            document.getElementById('ventas-total-modal').textContent = formatQuetzal(total);
+        }
+
+        // Agregar platillo
+        function addPlatilloRow() {
+            data[currentMonthIndex].detallesVentas.push({
+                platillo: 'Nuevo Platillo',
+                cantidad: 0,
+                precio: 0,
+                notas: '',
+                total: 0
+            });
+            renderVentasModal();
+        }
+
+        // Eliminar item de ventas
+        function deleteVentasItem(itemIndex) {
+            if (confirm('¿Eliminar este platillo?')) {
+                data[currentMonthIndex].detallesVentas.splice(itemIndex, 1);
+                renderVentasModal();
+            }
+        }
+
+        // Guardar datos de ventas
+        function saveVentasData() {
+            // Actualizar todos los campos desde los inputs
+            const inputs = document.querySelectorAll('.ventas-input');
+            inputs.forEach(input => {
+                const itemIndex = parseInt(input.dataset.itemIndex);
+                const field = input.dataset.field;
+                const value = input.value;
+                if (field === 'cantidad' || field === 'precio') {
+                    data[currentMonthIndex].detallesVentas[itemIndex][field] = parseFloat(value) || 0;
+                } else {
+                    data[currentMonthIndex].detallesVentas[itemIndex][field] = value;
+                }
+            });
+
+            // Recalcular totales
+            data[currentMonthIndex].detallesVentas.forEach(item => {
+                item.total = item.cantidad * item.precio;
+            });
+
+            // Actualizar ventas totales del mes
+            data[currentMonthIndex].ventas = data[currentMonthIndex].detallesVentas.reduce((sum, item) => sum + item
+                .total, 0);
+
+            closeVentasModal();
+            saveAndUpdate();
+        }
+
+        // Cerrar modal de ventas
+        function closeVentasModal() {
+            document.getElementById('ventas-modal').style.display = 'none';
+            currentMonthIndex = -1;
+        }
+
+        // Abrir modal de costos
+        function openCostosModal(index) {
+            currentMonthIndex = index;
+            document.getElementById('costos-month-title').textContent = data[index].month;
+            document.getElementById('costos-modal').style.display = 'block';
+
+            if (!data[index].detallesCostos) {
+                data[index].detallesCostos = [];
+            }
+
+            renderCostosModal();
+        }
+
+        // Renderizar modal de costos
+        function renderCostosModal() {
+            const tbody = document.getElementById('costos-modal-body');
+            const detalles = data[currentMonthIndex].detallesCostos;
+            tbody.innerHTML = '';
+
+            detalles.forEach((item, itemIndex) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="text" value="${item.producto}" data-item-index="${itemIndex}" data-field="producto" class="costos-input"></td>
+                    <td><input type="number" value="${item.cantidad}" data-item-index="${itemIndex}" data-field="cantidad" class="costos-input" onchange="updateCostosTotal(${itemIndex})"></td>
+                    <td><input type="number" step="0.01" value="${item.precio}" data-item-index="${itemIndex}" data-field="precio" class="costos-input" onchange="updateCostosTotal(${itemIndex})"></td>
+                    <td>${formatQuetzal(item.total)}</td>
+                    <td><button class="delete-row-btn" onclick="deleteCostosItem(${itemIndex})">🗑️</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updateCostosGrandTotal();
+        }
+
+        // Actualizar total de un item de costos
+        function updateCostosTotal(itemIndex) {
+            const detalles = data[currentMonthIndex].detallesCostos;
+            const cantidad = parseFloat(document.querySelector(
+                `input[data-item-index="${itemIndex}"][data-field="cantidad"]`).value) || 0;
+            const precio = parseFloat(document.querySelector(
+                `input[data-item-index="${itemIndex}"][data-field="precio"]`).value) || 0;
+            detalles[itemIndex].cantidad = cantidad;
+            detalles[itemIndex].precio = precio;
+            detalles[itemIndex].total = cantidad * precio;
+            renderCostosModal();
+        }
+
+        // Actualizar gran total de costos del modal
+        function updateCostosGrandTotal() {
+            const detalles = data[currentMonthIndex].detallesCostos;
+            const total = detalles.reduce((sum, item) => sum + (item.total || 0), 0);
+            document.getElementById('costos-total-modal').textContent = formatQuetzal(total);
+        }
+
+        // Agregar materia prima
+        function addCostoRow() {
+            data[currentMonthIndex].detallesCostos.push({
+                producto: 'Nuevo Producto',
+                cantidad: 0,
+                precio: 0,
+                total: 0
+            });
+            renderCostosModal();
+        }
+
+        // Eliminar item de costos
+        function deleteCostosItem(itemIndex) {
+            if (confirm('¿Eliminar este producto/materia prima?')) {
+                data[currentMonthIndex].detallesCostos.splice(itemIndex, 1);
+                renderCostosModal();
+            }
+        }
+
+        // Guardar datos de costos
+        function saveCostosData() {
+            // Actualizar todos los campos desde los inputs
+            const inputs = document.querySelectorAll('.costos-input');
+            inputs.forEach(input => {
+                const itemIndex = parseInt(input.dataset.itemIndex);
+                const field = input.dataset.field;
+                const value = input.value;
+                if (field === 'cantidad' || field === 'precio') {
+                    data[currentMonthIndex].detallesCostos[itemIndex][field] = parseFloat(value) || 0;
+                } else {
+                    data[currentMonthIndex].detallesCostos[itemIndex][field] = value;
+                }
+            });
+
+            // Recalcular totales
+            data[currentMonthIndex].detallesCostos.forEach(item => {
+                item.total = item.cantidad * item.precio;
+            });
+
+            // Actualizar costos totales del mes
+            data[currentMonthIndex].costos = data[currentMonthIndex].detallesCostos.reduce((sum, item) => sum + item
+                .total, 0);
+
+            closeCostosModal();
+            saveAndUpdate();
+        }
+
+        // Cerrar modal de costos
+        function closeCostosModal() {
+            document.getElementById('costos-modal').style.display = 'none';
+            currentMonthIndex = -1;
+        }
+
+        // Guardar datos y actualizar UI
+        function saveAndUpdate() {
+            localStorage.setItem('baysideData', JSON.stringify(data));
+            updateKPIs();
+            createChart();
+            renderTable();
+        }
+
+        // Agregar nueva fila (mes)
+        document.getElementById('add-row').addEventListener('click', () => {
+            const lastMonth = data[data.length - 1].month;
+            const [year, month] = lastMonth.split('-').map(Number);
+            let newMonth, newYear;
+
+            if (month === 12) {
+                newMonth = 1;
+                newYear = year + 1;
+            } else {
+                newMonth = month + 1;
+                newYear = year;
+            }
+
+            const newMonthStr = `${newYear}-${String(newMonth).padStart(2, '0')}`;
+            data.push({
+                month: newMonthStr,
+                ventas: 0,
+                costos: 0,
+                detallesVentas: [],
+                detallesCostos: []
+            });
+
+            saveAndUpdate();
+        });
+
+        // Eliminar mes
+        function deleteRow(index) {
+            if (data.length > 1 && confirm('¿Eliminar este mes de los registros?')) {
+                data.splice(index, 1);
+                saveAndUpdate();
+            }
+        }
+
+        // Restablecer datos
+        document.getElementById('reset-data').addEventListener('click', () => {
+            if (confirm('¿Restablecer todos los valores a los datos iniciales de BaySide?')) {
+                data = [...initialData];
+                saveAndUpdate();
+            }
+        });
+
+        // Exportar CSV
+        document.getElementById('export-data').addEventListener('click', () => {
+            const months = data.map((_, i) => i);
+            const ventas = data.map(d => d.ventas);
+            const { slope, intercept } = linearRegression(months, ventas);
+
+            let csv = 'Mes,Ventas Totales (Q),Costos Totales (Q),Margen (Q),% Margen,Tendencia (Q)\n';
+            data.forEach((row, i) => {
+                const margen = row.ventas - row.costos;
+                const porcentaje = row.ventas > 0 ? (margen / row.ventas * 100) : 0;
+                const tendencia = +(slope * i + intercept).toFixed(2);
+                csv +=
+                    `${row.month},${row.ventas},${row.costos},${margen},${porcentaje.toFixed(1)}%,${tendencia}\n`;
+            });
+
+            const pronostico = predictNextMonth();
+            csv += `2024-05 Pronóstico,${pronostico},N/A,N/A,N/A,N/A\n`;
+
+            // Agregar detalles
+            csv += '\n\nDETALLES DE VENTAS POR MES\n';
+            data.forEach(row => {
+                csv += `\n${row.month}\n`;
+                csv += 'Platillo,Cantidad,Precio Unitario (Q),Notas,Total (Q)\n';
+                if (row.detallesVentas) {
+                    row.detallesVentas.forEach(item => {
+                        csv +=
+                            `"${item.platillo}",${item.cantidad},${item.precio},"${item.notas || ''}",${item.total}\n`;
+                    });
+                }
+            });
+
+            csv += '\n\nDETALLES DE COSTOS POR MES\n';
+            data.forEach(row => {
+                csv += `\n${row.month}\n`;
+                csv += 'Producto,Cantidad,Precio Unitario (Q),Total (Q)\n';
+                if (row.detallesCostos) {
+                    row.detallesCostos.forEach(item => {
+                        csv += `"${item.producto}",${item.cantidad},${item.precio},${item.total}\n`;
+                    });
+                }
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'BaySide_dashboard_quetzales.csv';
+            a.click();
+        });
+
+        // Cerrar modales al hacer clic fuera
+        window.onclick = function(event) {
+            const ventasModal = document.getElementById('ventas-modal');
+            const costosModal = document.getElementById('costos-modal');
+            if (event.target == ventasModal) {
+                closeVentasModal();
+            }
+            if (event.target == costosModal) {
+                closeCostosModal();
+            }
+        }
+
+        // Inicializar
+        init();
+    </script>
+</body>
+</html>
